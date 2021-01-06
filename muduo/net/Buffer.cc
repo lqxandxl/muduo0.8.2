@@ -27,12 +27,13 @@ ssize_t Buffer::readFd(int fd, int* savedErrno)
   // saved an ioctl()/FIONREAD call to tell how much to read
   char extrabuf[65536];
   struct iovec vec[2];
-  const size_t writable = writableBytes();
-  vec[0].iov_base = begin()+writerIndex_;
+  const size_t writable = writableBytes(); //可写区间的字节数
+  vec[0].iov_base = begin()+writerIndex_;//可写writerIndex的数字
   vec[0].iov_len = writable;
   vec[1].iov_base = extrabuf;
   vec[1].iov_len = sizeof extrabuf;
-  const ssize_t n = sockets::readv(fd, vec, 2);
+  //这里的读实际上是一共两个iovec结构体传入，数据占满第一个结构体后，去占第二个结构体。
+  const ssize_t n = sockets::readv(fd, vec, 2); //系统调用，返回已读字节数 
   if (n < 0)
   {
     *savedErrno = errno;
@@ -43,8 +44,10 @@ ssize_t Buffer::readFd(int fd, int* savedErrno)
   }
   else
   {
+    //读出来的字节数大于Buffer的缓存，更新writerIndex为最新。
     writerIndex_ = buffer_.size();
-    append(extrabuf, n - writable);
+    append(extrabuf, n - writable); //n-可写字节数 等于超出的字节数，使用append添加到成员后面。
+    //将第二个结构体中读出的数据放入Buffer中
   }
   // if (n == writable + sizeof extrabuf)
   // {
