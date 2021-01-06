@@ -38,7 +38,7 @@ ssize_t Buffer::readFd(int fd, int* savedErrno)
   {
     *savedErrno = errno;
   }
-  else if (implicit_cast<size_t>(n) <= writable)
+  else if (implicit_cast<size_t>(n) <= writable) //向上转型 即派生类转为父类需要implicit_cast,如果有误，编译期报错
   {
     writerIndex_ += n;
   }

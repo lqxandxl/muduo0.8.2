@@ -293,7 +293,8 @@ class Buffer : public muduo::copyable
     prepend(&x, sizeof x);
   }
 
-  //在readerIndex处加入数据 何解？
+  //加入数据前，将readerIndex减少len。然后写入len长度。
+  //换句话说，在readerIndex的前面加入了一部分数据
   void prepend(const void* /*restrict*/ data, size_t len)
   {
     assert(len <= prependableBytes());
