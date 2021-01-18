@@ -27,6 +27,7 @@ PollPoller::~PollPoller()
 {
 }
 
+//activeChannels clear后传入 
 Timestamp PollPoller::poll(int timeoutMs, ChannelList* activeChannels)
 {
   // XXX pollfds_ shouldn't change
@@ -54,16 +55,16 @@ void PollPoller::fillActiveChannels(int numEvents,
   for (PollFdList::const_iterator pfd = pollfds_.begin();
       pfd != pollfds_.end() && numEvents > 0; ++pfd)
   {
-    if (pfd->revents > 0)
+    if (pfd->revents > 0) //不论是读写还是错误，都是大于0的，只要是事件就绪，就是大于0
     {
-      --numEvents;
+      --numEvents; //numEvents==0证明处理完毕，没必要再循环了，因此循环里增加了numEvents>0的条件
       ChannelMap::const_iterator ch = channels_.find(pfd->fd);
       assert(ch != channels_.end());
       Channel* channel = ch->second;
       assert(channel->fd() == pfd->fd);
-      channel->set_revents(pfd->revents);
+      channel->set_revents(pfd->revents); //设置revents
       // pfd->revents = 0;
-      activeChannels->push_back(channel);
+      activeChannels->push_back(channel); //就绪的channel放入activeChannels队列
     }
   }
 }

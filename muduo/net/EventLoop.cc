@@ -68,14 +68,14 @@ EventLoop::EventLoop()
     callingPendingFunctors_(false),
     iteration_(0),
     threadId_(CurrentThread::tid()),
-    poller_(Poller::newDefaultPoller(this)),
-    timerQueue_(new TimerQueue(this)),
-    wakeupFd_(createEventfd()),
-    wakeupChannel_(new Channel(this, wakeupFd_)),
+    poller_(Poller::newDefaultPoller(this)), //新建poller，poll还是epoll取决于环境变量
+    timerQueue_(new TimerQueue(this)),//定时任务的队列
+    wakeupFd_(createEventfd()),//创建一个事件的fd来监听
+    wakeupChannel_(new Channel(this, wakeupFd_)), //channel管理fd，几个new都是用智能指针进行管理的
     currentActiveChannel_(NULL)
 {
   LOG_TRACE << "EventLoop created " << this << " in thread " << threadId_;
-  if (t_loopInThisThread)
+  if (t_loopInThisThread) //如果为true证明该线程已有EventLoop对象。则创建失败。
   {
     LOG_FATAL << "Another EventLoop " << t_loopInThisThread
               << " exists in this thread " << threadId_;
@@ -107,9 +107,10 @@ void EventLoop::loop()
   while (!quit_)
   {
     activeChannels_.clear();
+    //返回当前时间
     pollReturnTime_ = poller_->poll(kPollTimeMs, &activeChannels_);
-    ++iteration_;
-    if (Logger::logLevel() <= Logger::TRACE)
+    ++iteration_; //最初构造是0
+    if (Logger::logLevel() <= Logger::TRACE) //日志级别
     {
       printActiveChannels();
     }
@@ -119,7 +120,10 @@ void EventLoop::loop()
         it != activeChannels_.end(); ++it)
     {
       currentActiveChannel_ = *it;
-      currentActiveChannel_->handleEvent(pollReturnTime_);
+      currentActiveChannel_->handleEvent(pollReturnTime_); //调出监听的活跃fd，进行fd的处理，传入的是当前时间戳
+      //EventLoop一上来使得weakupChannel处于可读状态，一旦weakupFd处于可读就会进入此逻辑。
+      //handleEvent根据触发的事件类型，写，读，异常从而触发不同的回调。
+      //这里weaupFd被置为不可读只是在恢复现场。假如Poller阻塞10s，那么当事件fd在第2s变成可读，就会立刻返回至此。其目的在于执行后续的doPendingFunctors方法。
     }
     currentActiveChannel_ = NULL;
     eventHandling_ = false;
@@ -143,11 +147,11 @@ void EventLoop::runInLoop(const Functor& cb)
 {
   if (isInLoopThread())
   {
-    cb();
+    cb(); //如果是当前线程，那么直接执行函数
   }
   else
   {
-    queueInLoop(cb);
+    queueInLoop(cb); //否则进入queueInLoop函数
   }
 }
 
@@ -158,9 +162,12 @@ void EventLoop::queueInLoop(const Functor& cb)
   pendingFunctors_.push_back(cb);
   }
 
+  //callingPendingFunctors_默认为False，只有正在执行函数队列的时候才是true
   if (!isInLoopThread() || callingPendingFunctors_)
   {
-    wakeup();
+    wakeup(); //只要调用者线程和EventLoop线程不一致，就进入该函数。
+    //假如一个线程内，也直接调用了queueInLoop方法，比如回调了某些方法，这些方法又回调了queueInLoop
+    //如果正好处于EventLoop自己处理函数队列的过程中调用，那么就wakeup。如果不是在这个过程中，证明马上就要执行函数队列了，则不需要wakeup。
   }
 }
 
@@ -225,7 +232,7 @@ void EventLoop::wakeup()
 void EventLoop::handleRead()
 {
   uint64_t one = 1;
-  ssize_t n = sockets::read(wakeupFd_, &one, sizeof one);
+  ssize_t n = sockets::read(wakeupFd_, &one, sizeof one); //只读一个字节 将事件fd恢复为不可读，即weakup的fd再次被置为不可读
   if (n != sizeof one)
   {
     LOG_ERROR << "EventLoop::handleRead() reads " << n << " bytes instead of 8";
@@ -235,16 +242,17 @@ void EventLoop::handleRead()
 void EventLoop::doPendingFunctors()
 {
   std::vector<Functor> functors;
+  //typedef boost::function<void()> Functor; 一视同仁，都是看作一种函数来对待去调用。
   callingPendingFunctors_ = true;
 
   {
   MutexLockGuard lock(mutex_);
-  functors.swap(pendingFunctors_);
+  functors.swap(pendingFunctors_);//互斥区短暂交换
   }
 
   for (size_t i = 0; i < functors.size(); ++i)
   {
-    functors[i]();
+    functors[i](); //执行functors下的functor
   }
   callingPendingFunctors_ = false;
 }

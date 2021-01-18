@@ -93,9 +93,9 @@ void Channel::handleEventWithGuard(Timestamp receiveTime)
   {
     if (errorCallback_) errorCallback_();
   }
-  if (revents_ & (POLLIN | POLLPRI | POLLRDHUP))
+  if (revents_ & (POLLIN | POLLPRI | POLLRDHUP)) 
   {
-    if (readCallback_) readCallback_(receiveTime);
+    if (readCallback_) readCallback_(receiveTime); //执行回调
   }
   if (revents_ & POLLOUT)
   {

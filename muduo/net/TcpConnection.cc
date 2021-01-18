@@ -116,7 +116,7 @@ void TcpConnection::send(Buffer* buf)
     if (loop_->isInLoopThread())
     {
       sendInLoop(buf->peek(), buf->readableBytes());
-      buf->retrieveAll();
+      buf->retrieveAll();//清理的是传入的buf，TcpConnection自己维护了outputBuffer
     }
     else
     {
