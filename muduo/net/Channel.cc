@@ -18,7 +18,7 @@ using namespace muduo;
 using namespace muduo::net;
 
 const int Channel::kNoneEvent = 0;
-const int Channel::kReadEvent = POLLIN | POLLPRI;
+const int Channel::kReadEvent = POLLIN | POLLPRI; //POLLPRI紧急数据
 const int Channel::kWriteEvent = POLLOUT;
 
 Channel::Channel(EventLoop* loop, int fd__)

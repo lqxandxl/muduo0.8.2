@@ -62,7 +62,14 @@ class Channel : boost::noncopyable
 
   void enableReading() { events_ |= kReadEvent; update(); }
   // void disableReading() { events_ &= ~kReadEvent; update(); }
-  void enableWriting() { events_ |= kWriteEvent; update(); }
+  //enableWriting:
+  //第一个的意思是把events和kWriteEvent相或计算，这样不影响events的其它位
+  //kWriteEvent 是固定值 4，即POLLOUT
+  //update是更新真正的poller。
+  //以struct pollfd为例，update就是更新真正的fd的events。
+  void enableWriting() { events_ |= kWriteEvent; update(); } 
+  //disableWriting:
+  //将4那一位bit置为0
   void disableWriting() { events_ &= ~kWriteEvent; update(); }
   void disableAll() { events_ = kNoneEvent; update(); }
   bool isWriting() const { return events_ & kWriteEvent; }

@@ -52,6 +52,7 @@ TcpConnection::TcpConnection(EventLoop* loop,
 {
   channel_->setReadCallback(
       boost::bind(&TcpConnection::handleRead, this, _1));
+  //设置写回调，当数据发送到socket之后，有一部分数据没来得及写，则后续会触发写回调继续写。
   channel_->setWriteCallback(
       boost::bind(&TcpConnection::handleWrite, this));
   channel_->setCloseCallback(
@@ -139,14 +140,19 @@ void TcpConnection::sendInLoop(const void* data, size_t len)
   ssize_t nwrote = 0;
   size_t remaining = len;
   // if no thing in output queue, try writing directly
+  //如果outbuffer里没数据了，并且channel不处于可写状态，进入发送逻辑。channel iswriting证明channel正在等待fd什么时候变得可写。
+  //这里可以看出，如果我们用的是poll进行发送，那么pollfd结构体的events是否为POLLOUT，只会影响事件监听，用户想要发送数据直接调用fd发送即可。
+  //这里之所以判断isWriting，是判断是否eventLoop还在监听写事件，如果正在监听，则说明之前socket的写fd已经写满过了，导致我们需要监听什么时候再次可写，直接跳过下面的逻辑。
   if (!channel_->isWriting() && outputBuffer_.readableBytes() == 0)
   {
     nwrote = sockets::write(channel_->fd(), data, len);
     if (nwrote >= 0)
     {
+      //剩余的字符是socket没来得及写的字符
       remaining = len - nwrote;
       if (remaining == 0 && writeCompleteCallback_)
       {
+        //写完了走这个逻辑
         loop_->queueInLoop(boost::bind(writeCompleteCallback_, shared_from_this()));
       }
     }
@@ -161,19 +167,24 @@ void TcpConnection::sendInLoop(const void* data, size_t len)
   }
 
   assert(remaining <= len);
+  //假如buffer里有剩余数据，则直接不发送进入此逻辑
   if (remaining > 0)
   {
+    //比如写100kb，最后剩下20kb
     LOG_TRACE << "I am going to write more data";
     size_t oldLen = outputBuffer_.readableBytes();
+    //剩余的字符加上outputBuffer剩余的字符超过了64*1024kb
     if (oldLen + remaining >= highWaterMark_
         && oldLen < highWaterMark_
-        && highWaterMarkCallback_)
+        && highWaterMarkCallback_)//如果高水位函数存在
     {
+      //执行高水位的处理函数
       loop_->queueInLoop(boost::bind(highWaterMarkCallback_, shared_from_this(), oldLen + remaining));
     }
-    outputBuffer_.append(static_cast<const char*>(data)+nwrote, remaining);
+    outputBuffer_.append(static_cast<const char*>(data)+nwrote, remaining); //第一个参数把指针移动到没来得及写进socket的字符处，第二个参数传长度
     if (!channel_->isWriting())
     {
+      //总之，由于网络的缓慢，导致了数据没有全部在socket处发出，events加入可写进行监听，fd什么时候变得可写了，触发写事件。
       channel_->enableWriting();
     }
   }
@@ -250,6 +261,7 @@ void TcpConnection::handleRead(Timestamp receiveTime)
   }
 }
 
+//当数据发送到socket之后，有一部分数据没来得及写，则后续会触发写回调继续写。
 void TcpConnection::handleWrite()
 {
   loop_->assertInLoopThread();
@@ -260,9 +272,11 @@ void TcpConnection::handleWrite()
                                outputBuffer_.readableBytes());
     if (n > 0)
     {
+      //outputBuffer的指针移动
       outputBuffer_.retrieve(n);
       if (outputBuffer_.readableBytes() == 0)
       {
+        //如果全部顺利写完了，则不进行写事件监听。因为都写完了。
         channel_->disableWriting();
         if (writeCompleteCallback_)
         {
@@ -275,6 +289,7 @@ void TcpConnection::handleWrite()
       }
       else
       {
+        //否则不改变继续监听写事件的事实，下一次再次变得可写的时候继续写。
         LOG_TRACE << "I am going to write more data";
       }
     }
