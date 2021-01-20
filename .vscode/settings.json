@@ -1,0 +1,20 @@
+{
+    "files.associations": {
+        "deque": "cpp",
+        "list": "cpp",
+        "map": "cpp",
+        "vector": "cpp",
+        "xstring": "cpp",
+        "xtree": "cpp",
+        "algorithm": "cpp",
+        "xmemory": "cpp",
+        "xutility": "cpp",
+        "utility": "cpp",
+        "istream": "cpp",
+        "ostream": "cpp",
+        "queue": "cpp",
+        "set": "cpp",
+        "string": "cpp",
+        "xlocnum": "cpp"
+    }
+}
