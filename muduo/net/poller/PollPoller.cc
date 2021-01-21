@@ -125,10 +125,10 @@ void PollPoller::removeChannel(Channel* channel)
   else
   {
     int channelAtEnd = pollfds_.back().fd;
-    iter_swap(pollfds_.begin()+idx, pollfds_.end()-1);
+    iter_swap(pollfds_.begin()+idx, pollfds_.end()-1); //把要删除的元素和最后一个元素的位置进行交换，然后删除最后一个元素
     if (channelAtEnd < 0)
     {
-      channelAtEnd = -channelAtEnd-1;
+      channelAtEnd = -channelAtEnd-1; //之前可能因为更新导致fd的值是真实fd的负数-1 ，这里-(-fd-1)+1 == fd
     }
     channels_[channelAtEnd]->set_index(idx);
     pollfds_.pop_back();

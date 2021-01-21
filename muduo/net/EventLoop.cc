@@ -120,7 +120,9 @@ void EventLoop::loop()
         it != activeChannels_.end(); ++it)
     {
       currentActiveChannel_ = *it;
-      currentActiveChannel_->handleEvent(pollReturnTime_); //调出监听的活跃fd，进行fd的处理，传入的是当前时间戳
+      currentActiveChannel_->handleEvent(pollReturnTime_); 
+      //当前监听的Channel们中的事件触发的Channel拿出来，开始执行回调。
+      //调出监听的活跃fd，进行fd的处理，传入的是当前时间戳
       //EventLoop一上来使得weakupChannel处于可读状态，一旦weakupFd处于可读就会进入此逻辑。
       //handleEvent根据触发的事件类型，写，读，异常从而触发不同的回调。
       //这里weaupFd被置为不可读只是在恢复现场。假如Poller阻塞10s，那么当事件fd在第2s变成可读，就会立刻返回至此。其目的在于执行后续的doPendingFunctors方法。
@@ -136,13 +138,15 @@ void EventLoop::loop()
 
 void EventLoop::quit()
 {
-  quit_ = true;
+  quit_ = true;//退出
   if (!isInLoopThread())
   {
     wakeup();
   }
 }
 
+//如果是同线程执行此函数，证明线程执行到此，直接执行函数。
+//如果是非同线程执行到此函数，则进入queueLoop方法
 void EventLoop::runInLoop(const Functor& cb)
 {
   if (isInLoopThread())
@@ -155,19 +159,22 @@ void EventLoop::runInLoop(const Functor& cb)
   }
 }
 
+//可以是自己的线程调用，也可是别的线程调用
 void EventLoop::queueInLoop(const Functor& cb)
 {
   {
   MutexLockGuard lock(mutex_);
-  pendingFunctors_.push_back(cb);
+  pendingFunctors_.push_back(cb); //首先不论哪个线程都把函数存储进队列中
   }
 
   //callingPendingFunctors_默认为False，只有正在执行函数队列的时候才是true
   if (!isInLoopThread() || callingPendingFunctors_)
   {
     wakeup(); //只要调用者线程和EventLoop线程不一致，就进入该函数。
-    //假如一个线程内，也直接调用了queueInLoop方法，比如回调了某些方法，这些方法又回调了queueInLoop
-    //如果正好处于EventLoop自己处理函数队列的过程中调用，那么就wakeup。如果不是在这个过程中，证明马上就要执行函数队列了，则不需要wakeup。
+    //假如同一个线程内，也直接调用了queueInLoop方法，比如回调了某些方法，这些方法又回调了queueInLoop
+    //如果正好处于EventLoop自己处理函数队列的过程中调用，callingPendingFunctors_为true，
+    //为了避免来不及调用函数，那么就wakeup。
+    //如果不是在这个过程中，证明currentActiveChannel_->handleEvent(pollReturnTime_); 触发的queueLoop回调，则马上就要执行函数队列了，则不需要wakeup。
   }
 }
 
@@ -193,6 +200,7 @@ void EventLoop::cancel(TimerId timerId)
   return timerQueue_->cancel(timerId);
 }
 
+//将Channel添加至poller中
 void EventLoop::updateChannel(Channel* channel)
 {
   assert(channel->ownerLoop() == this);
@@ -200,6 +208,7 @@ void EventLoop::updateChannel(Channel* channel)
   poller_->updateChannel(channel);
 }
 
+//将Channel从poller中删除
 void EventLoop::removeChannel(Channel* channel)
 {
   assert(channel->ownerLoop() == this);
@@ -219,6 +228,7 @@ void EventLoop::abortNotInLoopThread()
             << ", current thread id = " <<  CurrentThread::tid();
 }
 
+//往自己的fd中写内容，从而触发事件的发生
 void EventLoop::wakeup()
 {
   uint64_t one = 1;
@@ -229,6 +239,7 @@ void EventLoop::wakeup()
   }
 }
 
+//只对EventLoop自己的fd进行操作
 void EventLoop::handleRead()
 {
   uint64_t one = 1;
@@ -239,6 +250,7 @@ void EventLoop::handleRead()
   }
 }
 
+//执行自己所积攒的所有函数
 void EventLoop::doPendingFunctors()
 {
   std::vector<Functor> functors;
@@ -253,6 +265,7 @@ void EventLoop::doPendingFunctors()
   for (size_t i = 0; i < functors.size(); ++i)
   {
     functors[i](); //执行functors下的functor
+    //functor可能再次执行queueLoop因此，临界区变长锁住函数队列，会导致死锁。queueLoop也会锁函数队列。
   }
   callingPendingFunctors_ = false;
 }
