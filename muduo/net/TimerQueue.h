@@ -73,7 +73,7 @@ class TimerQueue : boost::noncopyable
   const int timerfd_;
   Channel timerfdChannel_;
   // Timer list sorted by expiration
-  TimerList timers_;
+  TimerList timers_; //以时间戳为key，Timer为value的entry构成的set
 
   // for cancel()
   ActiveTimerSet activeTimers_;

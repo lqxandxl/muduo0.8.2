@@ -45,6 +45,8 @@ Timestamp Timestamp::now()
 {
   struct timeval tv;
   gettimeofday(&tv, NULL);
+  //tv_sec 代表多少秒
+  //tv_usec 代表多少微秒 1000000 微秒 = 1秒
   int64_t seconds = tv.tv_sec;
   return Timestamp(seconds * kMicroSecondsPerSecond + tv.tv_usec);
 }
