@@ -100,7 +100,7 @@ void PollPoller::updateChannel(Channel* channel)
     if (channel->isNoneEvent())
     {
       // ignore this pollfd
-      pfd.fd = -channel->fd()-1;
+      pfd.fd = -channel->fd()-1; //不监听了
     }
   }
 }

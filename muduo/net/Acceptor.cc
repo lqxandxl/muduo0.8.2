@@ -23,7 +23,7 @@ using namespace muduo;
 using namespace muduo::net;
 
 Acceptor::Acceptor(EventLoop* loop, const InetAddress& listenAddr)
-  : loop_(loop),
+  : loop_(looacceptSocket_p),
     acceptSocket_(sockets::createNonblockingOrDie()),
     acceptChannel_(loop, acceptSocket_.fd()),
     listenning_(false),
@@ -51,6 +51,7 @@ void Acceptor::listen()
   acceptChannel_.enableReading();
 }
 
+//新连接来了之后的回调，回调此函数
 void Acceptor::handleRead()
 {
   loop_->assertInLoopThread();

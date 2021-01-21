@@ -75,10 +75,11 @@ void TcpServer::start()
   }
 }
 
+//传入的是新的fd连接
 void TcpServer::newConnection(int sockfd, const InetAddress& peerAddr)
 {
   loop_->assertInLoopThread();
-  EventLoop* ioLoop = threadPool_->getNextLoop();
+  EventLoop* ioLoop = threadPool_->getNextLoop(); //从线程池拿出一个loop来处理
   char buf[32];
   snprintf(buf, sizeof buf, ":%s#%d", hostport_.c_str(), nextConnId_);
   ++nextConnId_;
@@ -110,6 +111,8 @@ void TcpServer::removeConnection(const TcpConnectionPtr& conn)
   loop_->runInLoop(boost::bind(&TcpServer::removeConnectionInLoop, this, conn));
 }
 
+
+//收到0之后关闭连接执行的内容
 void TcpServer::removeConnectionInLoop(const TcpConnectionPtr& conn)
 {
   loop_->assertInLoopThread();

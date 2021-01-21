@@ -44,7 +44,7 @@ TcpConnection::TcpConnection(EventLoop* loop,
   : loop_(CHECK_NOTNULL(loop)),
     name_(nameArg),
     state_(kConnecting),
-    socket_(new Socket(sockfd)),
+    socket_(new Socket(sockfd)), //fd的真正析构是跟随TcpConnection的。只有TcpConnection析构了才会析构Socket。
     channel_(new Channel(loop, sockfd)),
     localAddr_(localAddr),
     peerAddr_(peerAddr),
@@ -201,13 +201,15 @@ void TcpConnection::shutdown()
   }
 }
 
+//主动关闭连接
+//可以看出主动关闭并不是真正的close fd，只是关闭了写
 void TcpConnection::shutdownInLoop()
 {
   loop_->assertInLoopThread();
-  if (!channel_->isWriting())
+  if (!channel_->isWriting())//正在写就不关
   {
     // we are not writing
-    socket_->shutdownWrite();
+    socket_->shutdownWrite(); //发出fin，对端收到0字节关闭连接
   }
 }
 
@@ -227,17 +229,18 @@ void TcpConnection::connectEstablished()
   connectionCallback_(shared_from_this());
 }
 
+//收到fin后的最后执行的一步
 void TcpConnection::connectDestroyed()
 {
   loop_->assertInLoopThread();
   if (state_ == kConnected)
   {
     setState(kDisconnected);
-    channel_->disableAll();
+    channel_->disableAll();//自己删除
 
-    connectionCallback_(shared_from_this());
+    connectionCallback_(shared_from_this());//用户删除
   }
-  channel_->remove();
+  channel_->remove(); //真正的删除
 }
 
 void TcpConnection::handleRead(Timestamp receiveTime)
@@ -308,17 +311,19 @@ void TcpConnection::handleWrite()
   }
 }
 
+//已读字节数为0，则要进行连接的关闭
+//收到fin应该都调用
 void TcpConnection::handleClose()
-{
+{//按理说，读到0之后，还可以继续把自己没发的发了（这一步应该是tcp做的工作）
   loop_->assertInLoopThread();
   LOG_TRACE << "TcpConnection::handleClose state = " << state_;
   assert(state_ == kConnected || state_ == kDisconnecting);
   // we don't close fd, leave it to dtor, so we can find leaks easily.
   setState(kDisconnected);
-  channel_->disableAll();
+  channel_->disableAll();//直接关闭就行，因为对方式主动关闭，所以不存在还有数据没传。
 
   TcpConnectionPtr guardThis(shared_from_this());
-  connectionCallback_(guardThis);
+  connectionCallback_(guardThis);//通知用户 该连接的情况 断了 那么用户就不需要持有和维护了
   // must be the last line
   closeCallback_(guardThis);
 }
