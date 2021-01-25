@@ -21,6 +21,8 @@ namespace net
 namespace sockets
 {
 
+//提供了大小端无符号数的16位，32位，64位的转化，使用系统调用。
+
 // the inline assembler code makes type blur,
 // so we disable warnings for a while.
 #if __GNUC_MINOR__ >= 6
