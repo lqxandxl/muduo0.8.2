@@ -57,6 +57,14 @@ class InetAddress : public muduo::copyable
 
  private:
   struct sockaddr_in addr_;
+  /*
+  struct sockaddr_in {
+    short	sin_family; // 意义？
+    u_short	sin_port; //port
+    struct in_addr	sin_addr; //地址 存32位无符号数字
+    char	sin_zero[8]; //忽略
+  };
+  */
 };
 
 }

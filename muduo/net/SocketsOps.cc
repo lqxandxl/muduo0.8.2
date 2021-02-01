@@ -191,12 +191,14 @@ void sockets::toIp(char* buf, size_t size,
   ::inet_ntop(AF_INET, &addr.sin_addr, buf, static_cast<socklen_t>(size));
 }
 
+
+//存放作者对socket相关的函数操作
 void sockets::fromIpPort(const char* ip, uint16_t port,
                            struct sockaddr_in* addr)
 {
   addr->sin_family = AF_INET;
-  addr->sin_port = hostToNetwork16(port);
-  if (::inet_pton(AF_INET, ip, &addr->sin_addr) <= 0)
+  addr->sin_port = hostToNetwork16(port);//转为网络字节序
+  if (::inet_pton(AF_INET, ip, &addr->sin_addr) <= 0) //系统调用 xx.xx.xx.xx转化为二进制ip
   {
     LOG_SYSERR << "sockets::fromIpPort";
   }

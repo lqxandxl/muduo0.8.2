@@ -97,6 +97,7 @@ inline Logger::LogLevel Logger::logLevel()
   return g_logLevel;
 }
 
+//如果实际等级比LOG_TRACE要高，那么此define失去意义，所以就不输出了。日志等级根据环境变量的定义而改变。
 #define LOG_TRACE if (muduo::Logger::logLevel() <= muduo::Logger::TRACE) \
   muduo::Logger(__FILE__, __LINE__, muduo::Logger::TRACE, __func__).stream()
 #define LOG_DEBUG if (muduo::Logger::logLevel() <= muduo::Logger::DEBUG) \

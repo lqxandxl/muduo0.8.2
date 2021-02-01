@@ -47,9 +47,10 @@ InetAddress::InetAddress(uint16_t port)
   addr_.sin_port = sockets::hostToNetwork16(port);
 }
 
+//传入127.0.0.1 1234
 InetAddress::InetAddress(const StringPiece& ip, uint16_t port)
 {
-  bzero(&addr_, sizeof addr_);
+  bzero(&addr_, sizeof addr_); //将结构体内容清0
   sockets::fromIpPort(ip.data(), port, &addr_);
 }
 

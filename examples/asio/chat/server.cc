@@ -76,7 +76,7 @@ int main(int argc, char* argv[])
   {
     EventLoop loop;
     uint16_t port = static_cast<uint16_t>(atoi(argv[1]));
-    InetAddress serverAddr(port);
+    InetAddress serverAddr(port); //anyip和指定端口
     ChatServer server(&loop, serverAddr);
     server.start();
     loop.loop();

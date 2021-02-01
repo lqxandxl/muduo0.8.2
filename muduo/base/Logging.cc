@@ -41,6 +41,7 @@ const char* strerror_tl(int savedErrno)
 
 Logger::LogLevel initLogLevel()
 {
+  //三种等级
   if (::getenv("MUDUO_LOG_TRACE"))
     return Logger::TRACE;
   else if (::getenv("MUDUO_LOG_DEBUG"))
@@ -110,7 +111,7 @@ using namespace muduo;
 Logger::Impl::Impl(LogLevel level, int savedErrno, const SourceFile& file, int line)
   : time_(Timestamp::now()),
     stream_(),
-    level_(level),
+    level_(level), //记录等级
     line_(line),
     basename_(file)
 {
@@ -160,9 +161,9 @@ Logger::Logger(SourceFile file, int line, LogLevel level, const char* func)
 {
   impl_.stream_ << func << ' ';
 }
-
+//logger构造的时候第三个参数代表了级别 日志等级
 Logger::Logger(SourceFile file, int line, LogLevel level)
-  : impl_(level, 0, file, line)
+  : impl_(level, 0, file, line) //作为第一个参数传入内部类
 {
 }
 

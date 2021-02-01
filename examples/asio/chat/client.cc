@@ -87,7 +87,7 @@ int main(int argc, char* argv[])
   {
     EventLoopThread loopThread;
     uint16_t port = static_cast<uint16_t>(atoi(argv[2]));
-    InetAddress serverAddr(argv[1], port);
+    InetAddress serverAddr(argv[1], port); //机器字节序传入地址和端口
 
     ChatClient client(loopThread.startLoop(), serverAddr);
     client.connect();
