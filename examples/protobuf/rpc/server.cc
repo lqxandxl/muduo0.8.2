@@ -34,9 +34,9 @@ int main()
   LOG_INFO << "pid = " << getpid();
   EventLoop loop;
   InetAddress listenAddr(9981);
-  sudoku::SudokuServiceImpl impl;
+  sudoku::SudokuServiceImpl impl; //这是一个服务
   RpcServer server(&loop, listenAddr);
-  server.registerService(&impl);
+  server.registerService(&impl); //注册进rpc中
   server.start();
   loop.loop();
   google::protobuf::ShutdownProtobufLibrary();

@@ -151,6 +151,8 @@ ssize_t sockets::read(int sockfd, void *buf, size_t count)
 
 ssize_t sockets::readv(int sockfd, const struct iovec *iov, int iovcnt)
 {
+  //也就是我们调用readv时，iov里面的长度其实是根据buffer目前可以写的长度而来的
+  //那么如果网络中传输 \0 会不会在readv这一层截断呢？
   return ::readv(sockfd, iov, iovcnt);
 }
 

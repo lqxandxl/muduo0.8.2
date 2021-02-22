@@ -48,10 +48,10 @@ void RpcServer::onConnection(const TcpConnectionPtr& conn)
     << (conn->connected() ? "UP" : "DOWN");
   if (conn->connected())
   {
-    RpcChannelPtr channel(new RpcChannel(conn));
-    channel->setServices(&services_);
+    RpcChannelPtr channel(new RpcChannel(conn));//channel管理新来的连接
+    channel->setServices(&services_);//存放pb service的map结构交给channel
     conn->setMessageCallback(
-        boost::bind(&RpcChannel::onMessage, get_pointer(channel), _1, _2, _3));
+        boost::bind(&RpcChannel::onMessage, get_pointer(channel), _1, _2, _3));//该连接消息来之后 回调RpcChannel的onMessage方法
     conn->setContext(channel);
   }
   else

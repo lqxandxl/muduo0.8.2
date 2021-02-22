@@ -67,6 +67,7 @@ void RpcCodec::onMessage(const TcpConnectionPtr& conn,
                          Buffer* buf,
                          Timestamp receiveTime)
 {
+  //消息来时，首先进入该函数
   while (buf->readableBytes() >= kMinMessageLen + kHeaderLen)
   {
     const int32_t len = buf->peekInt32();
@@ -76,7 +77,7 @@ void RpcCodec::onMessage(const TcpConnectionPtr& conn,
     }
     else if (buf->readableBytes() >= implicit_cast<size_t>(len + kHeaderLen))
     {
-      RpcMessage message;
+      RpcMessage message;//解出该消息结构后进行回调
       // FIXME: can we move deserialization & callback to other thread?
       ErrorCode errorCode = parse(buf->peek()+kHeaderLen, len, &message);
       if (errorCode == kNoError)

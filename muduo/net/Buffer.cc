@@ -29,7 +29,7 @@ ssize_t Buffer::readFd(int fd, int* savedErrno)
   struct iovec vec[2];
   const size_t writable = writableBytes(); //可写区间的字节数
   vec[0].iov_base = begin()+writerIndex_;//可写writerIndex的数字
-  vec[0].iov_len = writable;
+  vec[0].iov_len = writable;//可写区间 可以往buffer里加的长度
   vec[1].iov_base = extrabuf;
   vec[1].iov_len = sizeof extrabuf;
   //这里的读实际上是一共两个iovec结构体传入，数据占满第一个结构体后，去占第二个结构体。

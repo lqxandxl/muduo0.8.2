@@ -49,7 +49,7 @@ class RpcServer
 
   EventLoop* loop_;
   TcpServer server_;
-  std::map<std::string, ::google::protobuf::Service*> services_;
+  std::map<std::string, ::google::protobuf::Service*> services_; //究竟有哪些service？
 };
 
 }

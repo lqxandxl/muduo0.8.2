@@ -47,7 +47,7 @@ void RpcChannel::CallMethod(const ::google::protobuf::MethodDescriptor* method,
                   ::google::protobuf::Message* response,
                   ::google::protobuf::Closure* done)
 {
-  RpcMessage message;
+  RpcMessage message; //proto定义的消息结构
   message.set_type(REQUEST);
   int64_t id = id_.incrementAndGet();
   message.set_id(id);
@@ -65,9 +65,10 @@ void RpcChannel::onMessage(const TcpConnectionPtr& conn,
                            Buffer* buf,
                            Timestamp receiveTime)
 {
-  codec_.onMessage(conn, buf, receiveTime);
+  codec_.onMessage(conn, buf, receiveTime);//消息来时去调用codec的方法
 }
 
+//codec解完RpcMessage后回调该函数。
 void RpcChannel::onRpcMessage(const TcpConnectionPtr& conn,
                               const RpcMessage& message,
                               Timestamp receiveTime)
@@ -101,7 +102,7 @@ void RpcChannel::onRpcMessage(const TcpConnectionPtr& conn,
       delete out.response;
     }
   }
-  else if (message.type() == REQUEST)
+  else if (message.type() == REQUEST) //如果rpc消息是请求
   {
     // FIXME: extract to a function
     if (services_)
@@ -116,6 +117,7 @@ void RpcChannel::onRpcMessage(const TcpConnectionPtr& conn,
           = desc->FindMethodByName(message.method());
         if (method)
         {
+          //找到方法后进入该逻辑
           google::protobuf::Message* request = service->GetRequestPrototype(method).New();
           request->ParseFromString(message.request());
           google::protobuf::Message* response = service->GetResponsePrototype(method).New();
@@ -147,6 +149,7 @@ void RpcChannel::onRpcMessage(const TcpConnectionPtr& conn,
 void RpcChannel::doneCallback(::google::protobuf::Message* response, int64_t id)
 {
   RpcMessage message;
+  //远程调用后发送响应
   message.set_type(RESPONSE);
   message.set_id(id);
   message.set_response(response->SerializeAsString()); // FIXME: error check
